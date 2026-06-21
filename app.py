@@ -5,77 +5,58 @@ from torchvision import transforms
 from PIL import Image
 from model import SkinCancerResNet
 
-# 1. Initialize model architecture and load weights globally
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = SkinCancerResNet()
-weights_path = 'skin_cancer_cnn_weights.pth'
+weightsPath = 'skin_cancer_cnn_weights.pth'
 
-if os.path.exists(weights_path):
-    model.load_state_dict(torch.load(weights_path, map_location=device))
+if os.path.exists(weightsPath):
+    model.load_state_dict(torch.load(weightsPath, map_location=device))
     model.eval()
 else:
-    print(f"❌ Error: {weights_path} not found. Run train.py first!")
+    print("Model weights checkpoint file missing.")
 
-# 2. Define standard image transformations
-transform = transforms.Compose([
+transformPipeline = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# 3. Core prediction wrapper function for Gradio
-def predict(inp_img):
-    if inp_img is None:
-        return "Please upload an image."
+def evaluateUiInput(inputImg):
+    if inputImg is None:
+        return "No image uploaded."
     
-    # Convert incoming numpy array/PIL image to standard RGB tensor
-    image = Image.fromarray(inp_img.astype('uint8'), 'RGB')
-    image_tensor = transform(image).unsqueeze(0).to(device)
+    # I convert the numpy data from Gradio back into a standard PIL object
+    imgObject = Image.fromarray(inputImg.astype('uint8'), 'RGB')
+    imgTensor = transformPipeline(imgObject).unsqueeze(0).to(device)
     
     with torch.no_grad():
-        outputs = model(image_tensor)
+        outputs = model(imgTensor)
         probabilities = torch.nn.functional.softmax(outputs, dim=1)[0]
     
     classes = {
-        0: "Melanocytic nevi (nv - Common Benign Mole)",
-        1: "Melanoma (mel - High Risk Malignant)",
-        2: "Benign keratosis-like lesions (bkl - Harmless Bumpy Spot)",
-        3: "Basal cell carcinoma (bcc - Malignant)",
-        4: "Actinic keratoses (akiec - Pre-Cancerous)",
-        5: "Vascular lesions (vasc - Benign)",
-        6: "Dermatofibroma (df - Benign Skin Growth)"
+        0: "Melanocytic nevi (nv)",
+        1: "Melanoma (mel)",
+        2: "Benign keratosis-like lesions (bkl)",
+        3: "Basal cell carcinoma (bcc)",
+        4: "Actinic keratoses (akiec)",
+        5: "Vascular lesions (vasc)",
+        6: "Dermatofibroma (df)"
     }
     
-    # Return dictionary structured specifically for Gradio's Label component
     return {classes[idx]: float(probabilities[idx].item()) for idx in classes}
 
-# 4. Construct the Imperial-caliber Web Layout
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
-    gr.Markdown(
-        """
-        # 🔬 Clinical Dermatological Image Classifier
-        ### Imperial College London Candidate Research Prototype — Powered by ResNet50
-        
-        *Upload a close-up dermoscopy image (`.jpg` or `.png`) to generate an instant, 7-class differential diagnostic probability matrix.*
-        """
-    )
+    gr.Markdown("# Clinical Skin Cancer Classifier Prototype")
     
     with gr.Row():
         with gr.Column():
-            image_input = gr.Image(label="Upload Lesion Image")
-            submit_btn = gr.Button("Analyze Lesion Structure", variant="primary")
-        
+            imgInput = gr.Image(label="Lesion Image Target")
+            submitBtn = gr.Button("Run Diagnostic Analysis", variant="primary")
         with gr.Column():
-            label_output = gr.Label(num_top_classes=3, label="Top Morphological Diagnostics")
+            labelOutput = gr.Label(num_top_classes=3, label="Top Classification Outputs")
             
-    gr.Markdown(
-        """
-        ---
-        ⚠️ **Clinical Disclaimer:** This application is a deep learning research prototype trained on the HAM10000 dataset pool. It does not replace formal histopathological evaluation or official clinical assessment by a board-certified dermatologist.
-        """
-    )
-    
-    submit_btn.click(fn=predict, inputs=image_input, outputs=label_output)
+    gr.Markdown("Disclaimer: Research application platform. Not intended as an alternative to clinical evaluation.")
+    submitBtn.click(fn=evaluateUiInput, inputs=imgInput, outputs=labelOutput)
 
 if __name__ == "__main__":
     demo.launch()
