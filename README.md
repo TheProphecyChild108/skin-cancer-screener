@@ -1,51 +1,53 @@
-# Clinical Skin Cancer Classifier with Class-Imbalance Optimization
+# Multiclass Skin Lesion Classification Using Cost-Sensitive ResNet50
 
-An advanced end-to-end computer vision pipeline built in PyTorch utilizing a pre-trained **ResNet50** backbone to classify dermatological lesions into 7 distinct diagnostic categories using the HAM10000 dataset.
+This repository contains an end-to-end computer vision pipeline implemented in PyTorch to classify dermatological lesions into seven diagnostic categories using the HAM10000 dataset. The project focuses on mitigating severe class imbalance and preventing data leakage during validation.
 
-## 🔬 Project Evolution & Engineering Highlights
+## Methodology & Engineering Implementation
 
-### Phase 1: Identity Segregation (Anti-Data Leakage)
-* **The Challenge:** Standard random validation splitting yielded a deceptive ~100% accuracy due to identical lesion variations appearing across the same patients in both splits.
-* **The Solution:** Implemented a strict identity-level `GroupShuffleSplit` by `lesion_id`, ensuring complete isolation of patient backgrounds.
+### 1. Data Partitioning and Leakage Prevention
+* **Problem:** The HAM10000 dataset contains multiple images of identical lesions taken from the same patient across different timeframes or angles. A standard random train/validation split causes identical patient data to leak into both sets, resulting in artificially inflated validation accuracy.
+* **Solution:** Implemented a patient-level split using `GroupShuffleSplit` grouped by `lesion_id`. This guarantees that no patient background present in the training set appears within the validation set, ensuring a true measurement of model generalization.
 
-### Phase 2: Multi-Class Resolution
-* **The Evolution:** Expanded the network from a rigid binary system to a 7-class diagnostic split. This resolved false-positive traps where benign, textured anomalies (e.g., Seborrheic Keratoses) were misidentified as generic malignancies.
+### 2. Transition from Binary to Multiclass Classification
+The pipeline was expanded from a binary (benign/malignant) classifier to a seven-class system. This design choice prevents false positives caused by benign, highly textured lesions (such as Seborrheic Keratoses) being misclassified as generic malignancies, allowing for granular differential diagnostics.
 
-### Phase 3: Class-Imbalance Optimization (Production Grade)
-* **The Problem:** Extreme sample dominance of common moles skewed the model's prediction boundaries, leading to an initial Melanoma recall rate of just 37%.
-* **The Mitigation:** 1. **Dynamic Cost-Sensitive Learning:** Computed inverse frequency class weights to penalize the `CrossEntropyLoss` function proportionally for rare class errors.
-  2. **Stochastic Data Augmentation:** Applied random horizontal/vertical flips, affine rotations, and color jitter parameters to synthesize variations in sparse clinical vectors.
-
----
-
-## 📊 Final Optimized Performance Metrics
-
-Evaluated across a validation dataset of 989 completely unseen patient profiles, the optimized pipeline achieved an overall generalization accuracy of **80%**:
-
-| Diagnostic Category | Precision | Recall (Sensitivity) | Support | Status vs. Unweighted |
-| :--- | :---: | :---: | :---: | :--- |
-| **Melanocytic nevi (nv)** | 0.98 | 0.98 | 404 | Solid Stability 🔒 |
-| **Melanoma (mel)** | 0.87 | **0.57** | 215 | **Massive Recall Boost (+20%)** 🔥 |
-| **Benign keratosis (bkl)** | 0.68 | 0.71 | 240 | Highly Consistent 🔍 |
-| **Basal cell carcinoma (bcc)** | 0.72 | 0.80 | 88 | Clean Balance 📈 |
-| **Actinic keratoses (akiec)** | 0.00 | 0.00 | 0 | Insufficient Validation Data |
-| **Vascular lesions (vasc)** | 0.79 | 0.92 | 24 | Robust Generalization ✨ |
-| **Dermatofibroma (df)** | 0.21 | **0.83** | 18 | **Explosive Sensitivity Lift** 🚀 |
+### 3. Class Imbalance Mitigation
+The dataset exhibits severe class imbalance, heavily weighted toward common melanocytic nevi. This skew caused early training iterations to default to the majority class, resulting in poor minority class sensitivity (Melanoma recall was initially 37%). Two methods were used to counter this:
+* **Cost-Sensitive Learning:** Computed inverse-frequency weights applied directly to the `CrossEntropyLoss` function, heavily penalizing misclassifications on rare categories.
+* **Data Augmentation:** Implemented stochastic transformations including random affine rotations, horizontal/vertical flips, and color jitter to expand the minority class representation during training batches.
 
 ---
 
-## 🛠️ Repository Architecture
+## Evaluation Metrics
 
-* `pipeline.py` - Manages group-based splits and integrates stochastic training-set augmentations.
-* `model.py` - Configures the pre-trained ResNet50 deep residual neural backbone.
-* `train.py` - Computes cost-sensitive inverse class weights and runs the optimization loops.
-* `evaluate.py` - Generates multi-class tracking arrays and explicit classification matrices.
-* `predict.py` - Live inference script for running diagnostics on independent external images.
-* `app.py` - Live interactive Gradio web application layout.
+Evaluated across a validation partition of 989 patient-isolated profiles, the final model achieved an overall accuracy of 80%. 
+
+| Diagnostic Category (Class ID) | Precision | Recall (Sensitivity) | Support |
+| :--- | :---: | :---: | :---: |
+| **Melanocytic nevi (nv)** | 0.98 | 0.98 | 404 |
+| **Melanoma (mel)** | 0.87 | 0.57 | 215 |
+| **Benign keratosis-like lesions (bkl)** | 0.68 | 0.71 | 240 |
+| **Basal cell carcinoma (bcc)** | 0.72 | 0.80 | 88 |
+| **Actinic keratoses (akiec)** | 0.00 | 0.00 | 0 |
+| **Vascular lesions (vasc)** | 0.79 | 0.92 | 24 |
+| **Dermatofibroma (df)** | 0.21 | 0.83 | 18 |
+
+*Note on performance:* The application of inverse-frequency weighting increased Melanoma recall to 57% (a net improvement of +20% over unweighted baselines) and significantly raised Dermatofibroma sensitivity to 83%, demonstrating a successful trade-off between absolute precision and clinical safety boundaries.
 
 ---
 
-## 🔒 Copyright & Terms of Use
+## File Architecture
+
+* `pipeline.py` - Script handling dataset tokenization, group splits, and stochastic augmentations.
+* `model.py` - Network architecture defining the pre-trained ResNet50 backbone.
+* `train.py` - Training loop calculating class weights and executing optimization step functions.
+* `evaluate.py` - Evaluation logic generating confusion matrices and classification reports.
+* `predict.py` - Local inference pipeline for testing individual external images.
+* `app.py` - Deployment script launching the interactive Gradio web application.
+
+---
+
+## Copyright & Terms of Use
 
 Copyright © 2026. All rights reserved. 
 
