@@ -1,42 +1,45 @@
 import torch
-import pandas as pd
+from torch.utils.data import DataLoader
+from torchvision import transforms
 from sklearn.metrics import classification_report, confusion_matrix
-from pipeline import val_loader
+from pipeline import getPatientSplits, SkinDataset
 from model import SkinCancerResNet
 
-def evaluate_model():
-    print("Loading multi-class ResNet architecture for evaluation...")
-    model = SkinCancerResNet()
-    model.load_state_dict(torch.load('skin_cancer_cnn_weights.pth'))
+def runEvaluation():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    _, valDf = getPatientSplits('HAM10000_metadata.csv')
+
+    valTransform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
+    valDataset = SkinDataset(valDf, 'HAM10000_images', transform=valTransform)
+    valLoader = DataLoader(valDataset, batch_size=32, shuffle=False)
+
+    model = SkinCancerResNet().to(device)
+    model.load_state_dict(torch.load('skin_cancer_cnn_weights.pth', map_location=device))
     model.eval()
 
-    all_preds = []
-    all_labels = []
+    allPredictions = []
+    allLabels = []
 
-    print("Running validation over dataset batches... please wait...")
+    # I evaluate the model performance under no_grad to save memory
     with torch.no_grad():
-        for images, labels in val_loader:
+        for images, labels in valLoader:
+            images = images.to(device)
             outputs = model(images)
-            preds = torch.argmax(outputs, dim=1)
-            all_preds.extend(preds.cpu().numpy())
-            all_labels.extend(labels.cpu().numpy())
+            predictions = torch.argmax(outputs, dim=1)
+            
+            allPredictions.extend(predictions.cpu().numpy())
+            allLabels.extend(labels.numpy())
 
-    # The 7 specific clinical classes from the HAM10000 dataset
-    target_names = [
-        'Melanocytic nevi (nv)', 
-        'Melanoma (mel)', 
-        'Benign keratosis (bkl)', 
-        'Basal cell carcinoma (bcc)', 
-        'Actinic keratoses (akiec)', 
-        'Vascular lesions (vasc)', 
-        'Dermatofibroma (df)'
-    ]
-
-    print("\n--- CLINICAL METRICS REPORT ---")
-    print(classification_report(all_labels, all_preds, labels=[0, 1, 2, 3, 4, 5, 6], target_names=target_names, zero_division=0))
-    
-    print("\n--- RAW CONFUSION MATRIX ---")
-    print(confusion_matrix(all_labels, all_preds))
+    targetNames = ['nv', 'mel', 'bkl', 'bcc', 'akiec', 'vasc', 'df']
+    print("Classification Matrix:")
+    print(classification_report(allLabels, allPredictions, target_names=targetNames))
+    print("Confusion Matrix Array:")
+    print(confusion_matrix(allLabels, allPredictions))
 
 if __name__ == "__main__":
-    evaluate_model()
+    runEvaluation()
