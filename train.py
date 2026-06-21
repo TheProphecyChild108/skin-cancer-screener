@@ -1,64 +1,63 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import pandas as pd
+from torch.utils.data import DataLoader
+from torchvision import transforms
 import numpy as np
-from pipeline import train_loader, train_dataset
+from pipeline import getPatientSplits, SkinDataset
 from model import SkinCancerResNet
 
-def train_model():
-    print("🚀 Initializing Weighted Multi-Class Training Cycle...")
+def computeClassWeights(dataframe):
+    # I calculate inverse frequency weights to fix the heavy majority class bias
+    totalSamples = len(dataframe)
+    labelCounts = dataframe['dx'].value_counts()
+    labelMap = {'nv':0, 'mel':1, 'bkl':2, 'bcc':3, 'akiec':4, 'vasc':5, 'df':6}
+    
+    classWeights = np.zeros(7)
+    for countIdx, count in labelCounts.items():
+        classWeights[labelMap[countIdx]] = totalSamples / (len(labelCounts)*count)
+    return torch.FloatTensor(classWeights)
+
+def runTraining():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # Calculate inverse class weights based on our specific training split distribution
-    labels = train_dataset.df['label'].values
-    class_counts = np.bincount(labels, minlength=7)
-    # Avoid dividing by zero if a class has zero counts in this specific subset
-    class_counts = np.where(class_counts == 0, 1, class_counts) 
-    
-    weights = 1.0 / class_counts
-    weights = weights / np.sum(weights) * 7.0 # Normalize weights
-    class_weights = torch.FloatTensor(weights).to(device)
-    print(f"📊 Calculated Loss Penalties: {weights}")
+    trainDf, valDf = getPatientSplits('HAM10000_metadata.csv')
+
+    # My training augmentations to help model generalize to rare variations
+    trainTransform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomRotation(15),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
+    trainDataset = SkinDataset(trainDf, 'HAM10000_images', transform=trainTransform)
+    trainLoader = DataLoader(trainDataset, batch_size=32, shuffle=True)
 
     model = SkinCancerResNet().to(device)
-    
-    # Pass the calculated weights directly into CrossEntropyLoss
-    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    weights = computeClassWeights(trainDf).to(device)
+    criterion = nn.CrossEntropyLoss(weight=weights)
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
-    epochs = 3
-    for epoch in range(epochs):
-        model.train()
-        running_loss = 0.0
-        correct = 0
-        total = 0
-        
-        for batch_idx, (images, targets) in enumerate(train_loader):
-            images, targets = images.to(device), targets.to(device)
-            
+    # I am using a simple 5 epoch loop for my initial training runs
+    model.train()
+    for epoch in range(5):
+        runningLoss = 0.0
+        for images, labels in trainLoader:
+            images = images.to(device)
+            labels = labels.to(device)
+
             optimizer.zero_grad()
             outputs = model(images)
-            loss = criterion(outputs, targets)
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
+            runningLoss += loss.item()
             
-            running_loss += loss.item()
-            _, predicted = torch.max(outputs, dim=1)
-            total += targets.size(0)
-            correct += (predicted == targets).sum().item()
-            
-            if (batch_idx + 1) % 50 == 0 or (batch_idx + 1) == len(train_loader):
-                print(f"Epoch [{epoch+1}/{epochs}] | Batch {batch_idx+1}/{len(train_loader)} | Loss: {loss.item():.4f}")
-                
-        epoch_loss = running_loss / len(train_loader)
-        epoch_acc = (correct / total) * 100
-        print(f"\n📢 --- EPOCH {epoch+1} SUMMARY ---")
-        print(f"Average Loss: {epoch_loss:.4f} | Training Accuracy: {epoch_acc:.2f}%\n")
+        print("Epoch " + str(epoch+1) + " Completed. Average Loss: " + str(round(runningLoss/len(trainLoader), 4)))
 
-    print("Deep Learning Weighted Training Complete!")
     torch.save(model.state_dict(), 'skin_cancer_cnn_weights.pth')
-    print("✅ Optimized weights successfully exported to 'skin_cancer_cnn_weights.pth'!")
 
 if __name__ == "__main__":
-    train_model()
+    runTraining()
