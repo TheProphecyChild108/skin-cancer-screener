@@ -96,7 +96,7 @@ Launch a local interactive Gradio interface in your web browser to upload skin l
 ```bash
 python app.py
 ```
-
+![Gradio App Demo](bandicam%202026-06-22%2016-04-29-405.gif)
 ---
 
 
