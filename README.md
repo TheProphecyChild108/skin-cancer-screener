@@ -91,8 +91,14 @@ Process an entire folder of raw images at once and dump a diagnostic summary log
 ```Bash
 python batch_test.py test_samples
 ```
+### 6. Launch the Interactive Web App
+Launch a local interactive Gradio interface in your web browser to upload skin lesion images and view real-time model predictions and confidence scores:
+```bash
+python app.py
+```
 
 ---
+
 
 ## Copyright & Terms of Use
 
