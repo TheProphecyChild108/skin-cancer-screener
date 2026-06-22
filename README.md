@@ -20,17 +20,18 @@ The dataset exhibits severe class imbalance, heavily weighted toward common mela
 
 ## Evaluation Metrics
 
-Evaluated across a validation partition of 989 patient-isolated profiles, the final model achieved an overall accuracy of 80%. 
+Evaluated across a validation partition of 2,024 patient-isolated profiles, the final model achieved an overall accuracy of 78%. 
 
 | Diagnostic Category (Class ID) | Precision | Recall (Sensitivity) | Support |
 | :--- | :---: | :---: | :---: |
-| **Melanocytic nevi (nv)** | 0.98 | 0.98 | 404 |
-| **Melanoma (mel)** | 0.87 | 0.57 | 215 |
-| **Benign keratosis-like lesions (bkl)** | 0.68 | 0.71 | 240 |
-| **Basal cell carcinoma (bcc)** | 0.72 | 0.80 | 88 |
-| **Actinic keratoses (akiec)** | 0.00 | 0.00 | 0 |
-| **Vascular lesions (vasc)** | 0.79 | 0.92 | 24 |
-| **Dermatofibroma (df)** | 0.21 | 0.83 | 18 |
+| **Melanocytic nevi (nv)** | 0.96 | 0.81 | 1336 |
+| **Melanoma (mel)** | 0.48 | 0.78 | 236 |
+| **Benign keratosis-like lesions (bkl)** | 0.67 | 0.66 | 243 |
+| **Basal cell carcinoma (bcc)** | 0.72 | 0.76 | 90 |
+| **Actinic keratoses (akiec)** | 0.47 | 0.66 | 67 |
+| **Vascular lesions (vasc)** | 0.68 | 1.00 | 34 |
+| **Dermatofibroma (df)** | 0.24 | 0.56 | 18 |
+
 
 ### Optimization Curve
 ![ResNet50 Optimization Progress Across Epochs](learning_curve.png)
@@ -46,10 +47,35 @@ Evaluated across a validation partition of 989 patient-isolated profiles, the fi
 
 * `pipeline.py` - Script handling dataset tokenization, group splits, and stochastic augmentations.
 * `model.py` - Network architecture defining the pre-trained ResNet50 backbone.
-* `train.py` - Training loop calculating class weights and executing optimization step functions.
-* `evaluate.py` - Evaluation logic generating confusion matrices and classification reports.
+* `train.py` - Core execution loop managing model training, dual-line validation monitoring, and saving convergence histories.
+* `evaluate.py` - Validation script calculating granular evaluation matrices and exporting the visual confusion grid.
 * `predict.py` - Local inference pipeline for testing individual external images.
 * `app.py` - Deployment script launching the interactive Gradio web application.
+
+---
+
+## How to Run This Project
+
+### 1. Installation
+Install the required deep learning and computer vision dependencies:
+```bash
+pip install -r requirements.txt
+```
+### 2. Model Training
+Train the network across 5 epochs with live training and validation loss tracking:
+```bash
+python train.py
+```
+### 3. Model Evaluation
+Evaluate the model against the validation subset to calculate precision, recall, and generate a visual matrix:
+```Bash
+python evaluate.py
+```
+### 4. Bulk Folder Inference
+Process an entire folder of raw images at once and dump a diagnostic summary log:
+```Bash
+python batch_test.py test_samples
+```
 
 ---
 
