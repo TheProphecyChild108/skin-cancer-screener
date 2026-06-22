@@ -32,6 +32,9 @@ Evaluated across a validation partition of 989 patient-isolated profiles, the fi
 | **Vascular lesions (vasc)** | 0.79 | 0.92 | 24 |
 | **Dermatofibroma (df)** | 0.21 | 0.83 | 18 |
 
+### Optimization Curve
+![ResNet50 Optimization Progress Across Epochs](learning_curve.png)
+
 *Note on performance:* The application of inverse-frequency weighting increased Melanoma recall to 57% (a net improvement of +20% over unweighted baselines) and significantly raised Dermatofibroma sensitivity to 83%, demonstrating a successful trade-off between absolute precision and clinical safety boundaries.
 
 ---
