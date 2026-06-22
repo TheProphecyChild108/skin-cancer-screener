@@ -35,6 +35,9 @@ Evaluated across a validation partition of 989 patient-isolated profiles, the fi
 ### Optimization Curve
 ![ResNet50 Optimization Progress Across Epochs](learning_curve.png)
 
+### Diagnostic Confusion Matrix
+![Lesion Classification Confusion Matrix](confusion_matrix.png)
+
 *Note on performance:* The application of inverse-frequency weighting increased Melanoma recall to 57% (a net improvement of +20% over unweighted baselines) and significantly raised Dermatofibroma sensitivity to 83%, demonstrating a successful trade-off between absolute precision and clinical safety boundaries.
 
 ---
