@@ -20,6 +20,7 @@ The dataset exhibits severe class imbalance, heavily weighted toward common mela
 
 ## Limitations & Model Bias
 **Critical Clinical Note:** The underlying model was trained primarily on the HAM10000 dataset, which exhibits strong demographic skew toward lighter skin phenotypes. Consequently, classification accuracy may degrade significantly on darker skin tones. This prototype is strictly for educational exploration and must not be utilized as a diagnostic utility.
+
 ![Gradio App Demo for Darker Skin](bandicam%202026-06-22%2017-02-13-448.gif)
 
 ---
