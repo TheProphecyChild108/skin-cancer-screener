@@ -61,17 +61,28 @@ Install the required deep learning and computer vision dependencies:
 ```bash
 pip install -r requirements.txt
 ```
-### 2. Model Training
+### 2. Dataset Setup
+Note on Data Hosting: Due to storage size limitations, the raw HAM10000 image dataset is not hosted directly on GitHub. Users must download the data files manually to run the pipeline locally.
+
+Download the HAM10000 dataset from Kaggle or Harvard Dataverse.
+Extract the archive files.
+Place the files into a folder named data/ in your project root directory using this structure:
+data/
+  ├── HAM10000_images_part_1/
+  ├── HAM10000_images_part_2/
+  └── HAM10000_metadata.csv
+  
+### 3. Model Training
 Train the network across 5 epochs with live training and validation loss tracking:
 ```bash
 python train.py
 ```
-### 3. Model Evaluation
+### 4. Model Evaluation
 Evaluate the model against the validation subset to calculate precision, recall, and generate a visual matrix:
 ```Bash
 python evaluate.py
 ```
-### 4. Bulk Folder Inference
+### 5. Bulk Folder Inference
 Process an entire folder of raw images at once and dump a diagnostic summary log:
 ```Bash
 python batch_test.py test_samples
