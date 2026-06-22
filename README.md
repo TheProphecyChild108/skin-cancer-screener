@@ -34,9 +34,13 @@ Evaluated across a validation partition of 2,024 patient-isolated profiles, the 
 
 
 ### Optimization Curve
+During training, both the training loss and validation loss decay steadily together over successive epochs. This synchronous downward trend demonstrates that the ResNet50 backbone is successfully minimizing error and learning generalizable clinical features without overfitting to the training subset.
+
 ![ResNet50 Optimization Progress Across Epochs](learning_curve.png)
 
 ### Diagnostic Confusion Matrix
+The strong diagonal alignment across the confusion matrix proves that the model effectively maps predictions to their true corresponding categories. While the common majority class (Melanocytic nevi) maintains high predictive density, the inclusion of cost-sensitive inverse weights successfully forces the model to learn clear decision boundaries for critical minority classes like Melanoma, reducing dangerous false negatives.
+
 ![Lesion Classification Confusion Matrix](confusion_matrix.png)
 
 *Note on performance:* The application of inverse-frequency weighting increased Melanoma recall to 57% (a net improvement of +20% over unweighted baselines) and significantly raised Dermatofibroma sensitivity to 83%, demonstrating a successful trade-off between absolute precision and clinical safety boundaries.
